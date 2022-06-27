@@ -28,7 +28,7 @@ plt.style.use("fivethirtyeight")
 # In[3]:
 
 
-df = pd.read_excel('NYC_Dog_Licenses_Current_as_of_4-28-2016.xlsx', nrows=30000)
+df = pd.read_excel('NYC_Dog_Licenses_Current_as_of_4-28-2016.xlsx', nrows=30000, dtype={'Owner Zip Code':str})
 
 
 # In[4]:
@@ -57,6 +57,13 @@ df.shape[0]
 df.dtypes
 
 
+# In[7]:
+
+
+#modify column names
+df.columns = df.columns.str.lower().str.replace(' ','_')
+
+
 # ## Describe the dataset in words. What is each row? List two column titles along with what each of those columns means.
 # 
 # For example: “Each row is an animal in the zoo. `is_reptile` is whether the animal is a reptile or not”
@@ -68,25 +75,32 @@ df.dtypes
 # `Vaccinated` is whether the pet is vaccinated or not. Shown as <YES/NO><br>
 # ----
 
-# In[7]:
+# In[8]:
 
 
 #check column names
 df.columns
 
 
-# In[8]:
-
-
-#check data in Vaccinated column
-df.Vaccinated.unique()
-
-
 # In[9]:
 
 
+#check data in Vaccinated column
+df.vaccinated.unique()
+
+
+# In[10]:
+
+
 #check data in Owner Zip Code
-df['Owner Zip Code'].unique()
+df['owner_zip_code'].unique()
+
+
+# In[11]:
+
+
+#add '0' if zip code is only 4 digits
+df.owner_zip_code = df.owner_zip_code.apply(lambda x: '0'+ str(x) if len(x)==4 else x)
 
 
 # # Your thoughts
@@ -108,32 +122,32 @@ df['Owner Zip Code'].unique()
 
 # ## What are the most popular (primary) breeds of dogs? Graph the top 10.
 
-# In[16]:
+# In[12]:
 
 
 #top 10 breed
-df['Primary Breed'].value_counts().head(10)
+df.primary_breed.value_counts().head(10)
 
 
-# In[20]:
+# In[13]:
 
 
 #replace 'Unknown'
-df['Primary Breed'] = df['Primary Breed'].replace('Unknown', np.nan)
+df.primary_breed = df.primary_breed.replace('Unknown', np.nan)
 
 
-# In[21]:
+# In[14]:
 
 
 #top 10 breed excluding unknown
-df['Primary Breed'].value_counts().head(10)
+df.primary_breed.value_counts().head(10)
 
 
-# In[22]:
+# In[15]:
 
 
 #top 10 graph
-df['Primary Breed'].value_counts().head(10).sort_values().plot(kind='barh')
+df.primary_breed.value_counts().head(10).sort_values().plot(kind='barh')
 plt.title('The most popular primary breeds of dogs')
 plt.show()
 
@@ -142,7 +156,7 @@ plt.show()
 # 
 # * *Tip: Maybe you want to go back to your `.read_csv` and use `na_values=`? Maybe not? Up to you!*
 
-# In[23]:
+# In[16]:
 
 
 #I have done it with 3.1
@@ -150,193 +164,192 @@ plt.show()
 
 # ## What are the most popular dog names?
 
-# In[26]:
+# In[17]:
 
 
 #popular names
-df['Animal Name'].value_counts().head(10)
+df.animal_name.value_counts().head(10)
 
+
+# In[18]:
+
+
+#replace names "Unknown" with np.nan
+df.loc[df.animal_name.str.contains('unknown',case=False, na=False),'animal_name'] = np.nan
+
+
+# In[19]:
+
+
+#popular names excluding unknown
+df.animal_name.value_counts().head(10)
+
+
+# ## Do any dogs have your name? How many dogs are named "Max," and how many are named "Maxwell"?
+
+# In[20]:
+
+
+# Do any dogs have your name?----> No
+df[df.animal_name.str.contains('mio', case=False, na=False)]
+
+
+# In[21]:
+
+
+#cleaning data
+#strip
+df.animal_name = df.animal_name.str.strip()
+
+
+# In[22]:
+
+
+#How many dogs are named "Max?
+#check Max names
+df[df.animal_name.str.contains('Max', case=False, na=False)].animal_name.unique()
+
+
+# In[23]:
+
+
+#How many dogs are named "Max"
+#count dogs with all names with "max" in it
+df.animal_name.str.contains('Max', case=False, na=False).sum()
+
+
+# In[24]:
+
+
+#Only "Max (with either upper/lowercase)"
+df.animal_name.str.contains('^max$', case=False, na=False).sum()
+
+
+# In[25]:
+
+
+#all the Maxwell names
+df.animal_name.str.contains('maxwell', case=False, na=False).sum()
+
+
+# In[26]:
+
+
+#Only "Maxwell(with either upper/lowercase)"
+df.animal_name.str.contains('^maxwell$', case=False, na=False).sum()
+
+
+# ## What percentage of dogs are guard dogs?
 
 # In[27]:
 
 
-#replace names "Unknown" with np.nan
-df.loc[df['Animal Name'].str.contains('unknown', case=False, na=False),'Animal Name'] =np.nan
+#check data
+df.guard_or_trained.unique()
 
 
 # In[28]:
 
 
-#popular names excluding unknown
-df['Animal Name'].value_counts().head(10)
+#percentage of guard dogs/non-guard dogs
+df.guard_or_trained.value_counts(normalize=True)
 
 
-# ## Do any dogs have your name? How many dogs are named "Max," and how many are named "Maxwell"?
+# In[29]:
+
+
+percentage = df.guard_or_trained.value_counts(normalize=True)['Yes'] *100
+print(f"{percentage:.2f}% of dogs with training data are guard dogs.")
+
 
 # In[30]:
 
 
-#cleaning data
-#strip
-df['Animal Name'] = df['Animal Name'].apply(lambda x: str(x).strip())
-df['Animal Name'] = df['Animal Name'].replace('nan', np.nan)
-
-
-# In[86]:
-
-
-#all the max names
-names = df.loc[df['Animal Name'].str.contains('Max', case=False, na=False),'Animal Name'].unique()
-numbers = df[df['Animal Name'].str.contains('Max', case=False, na=False)].shape[0]
-
-print(f"There are {numbers} dogs with Max names.\n")
-print('Names:\n', ', '.join(names))
-
-
-# In[85]:
-
-
-#Only"Max (with either upper/lowercase)"
-names = df[df['Animal Name'].str.contains('^Max$', case=False, na=False, regex=True)]['Animal Name'].unique()
-numbers = df[df['Animal Name'].str.contains('^Max$', case=False, na=False, regex=True)].shape[0]
-
-print(f"Among them, {numbers} dogs are registered as 'Max'.\n")
-print('Names:\n', ', '.join(names))
-
-
-# In[79]:
-
-
-#all the Maxwell names
-names = df[df['Animal Name'].str.contains('Maxwell', case=False, na=False, regex=True)]['Animal Name'].unique()
-numbers = df[df['Animal Name'].str.contains('Maxwell', case=False, na=False, regex=True)].shape[0]
-
-print(f'{numbers} dogs are named "Maxwell".\n')
-print('Names:\n', ', '.join(names))
-
-
-# In[84]:
-
-
-#Only "Maxwell(with either upper/lowercase)"
-names = df[df['Animal Name'].str.contains('^Maxwell$', case=False, na=False, regex=True)]['Animal Name'].unique()
-numbers = df[df['Animal Name'].str.contains('^Maxwell$', case=False, na=False, regex=True)].shape[0]
-
-print(f"Among them, {numbers} dogs are registered as 'Maxwell'.\n")
-print('Names:\n', ', '.join(names))
-
-
-# ## What percentage of dogs are guard dogs?
-
-# In[88]:
-
-
-#check data
-df['Guard or Trained'].unique()
-
-
-# In[91]:
-
-
-# percentage excluding na values
-df['Guard or Trained'].value_counts(normalize=True) *100
-
-
-# In[92]:
-
-
 # percentage including na values
-df['Guard or Trained'].value_counts(dropna=False, normalize=True) *100
+df.guard_or_trained.value_counts(dropna=False, normalize=True) *100
+
+
+# In[31]:
+
+
+percentage = df.guard_or_trained.value_counts(normalize=True, dropna=False)['Yes'] *100
+print(f"{percentage:.2f}% of all dogs are guard dogs.")
 
 
 # ## What are the actual numbers?
 
-# In[93]:
+# In[32]:
 
 
-df['Guard or Trained'].value_counts()
+df.guard_or_trained.value_counts()
 
 
 # ## Wait... if you add that up, is it the same as your number of rows? Where are the other dogs???? How can we find them??????
 # 
 # Use your `.head()` to think about it, then you'll do some magic with `.value_counts()`. Think about missing data!
 
-# In[100]:
+# In[33]:
 
 
 # if you add that up, is it the same as your number of rows?
 #add numbers up
 #It's NOT the same as the number of all the rows (30000)
-df['Guard or Trained'].value_counts().sum()
+df.guard_or_trained.value_counts().sum()
 
 
-# In[112]:
+# In[34]:
 
 
 #Where are the other dogs????
-print(f"{len(df) - df['Guard or Trained'].value_counts().sum()} are missing because they have 'na' values for 'Guard ot Trained' column.")
-
-
-# In[113]:
-
-
 #How can we find them??????
-#by filtering na data
-df[df['Guard or Trained'].isna()].head()
+#---->by filtering na data
+df[df.guard_or_trained.isna()].head()
 
 
 # ## Maybe fill in all of those empty "Guard or Trained" columns with "No"? Or as `NaN`? 
 # 
 # Can we make an assumption either way? Then check your result with another `.value_counts()`
 
-# In[117]:
-
-
-#Yes/No + counting NaN 
-df['Guard or Trained'].value_counts(dropna=False, normalize=True) * 100
-
-
-# In[120]:
+# In[35]:
 
 
 #counting NaN as "No"
-df['Guard or Trained'].fillna('No').value_counts(normalize=True) * 100
+df.guard_or_trained.fillna('No').value_counts(normalize=True)
 
 
 # ## What are the top dog breeds for guard dogs? 
 
-# In[122]:
+# In[36]:
 
 
 #the top dog breeds for guard dogs
-df.loc[df['Guard or Trained']=='Yes','Primary Breed'].value_counts().head(5)
+df.query("guard_or_trained=='Yes'").primary_breed.value_counts().head(5)
 
 
 # ## Create a new column called "year" that is the dog's year of birth
 # 
 # The `Animal Birth` column is a datetime, so you can get the year out of it with the code `df['Animal Birth'].apply(lambda birth: birth.year)`.
 
-# In[123]:
+# In[37]:
 
 
-#take out year and assign it as a new column
-df['year'] = df['Animal Birth'].apply(lambda birth: birth.year)
+df['year'] = df.animal_birth.dt.year
 
 
 # ## Calculate a new column called “age” that shows approximately how old the dog is. How old are dogs on average?
 
-# In[124]:
+# In[38]:
 
 
 #calculate age and assign it as a new column
 df['age'] = 2022 - df.year
 
 
-# In[128]:
+# In[39]:
 
 
 #average age of dogs
-print(f"Dogs are {df.age.mean():.1f} years old on average.")
+print(f"Dogs are {df.age.median():.1f} years old on average.")
 
 
 # # Joining data together
@@ -345,209 +358,185 @@ print(f"Dogs are {df.age.mean():.1f} years old on average.")
 # 
 # You also have a (terrible) list of NYC neighborhoods in `zipcodes-neighborhoods.csv`. Join these two datasets together, so we know what neighborhood each dog lives in. **Be sure to not read it in as `df`, or else you'll overwrite your dogs dataframe.**
 
-# In[130]:
+# In[40]:
 
 
 #read zipcode data
-zipcode = pd.read_csv('zipcodes-neighborhoods.csv')
+zipcode = pd.read_csv('zipcodes-neighborhoods.csv', dtype=str)
 
 
-# In[132]:
+# In[41]:
 
 
 #check data
 zipcode.head()
 
 
-# In[134]:
+# In[42]:
 
 
 #check data types
 zipcode.dtypes
 
 
-# In[135]:
+# In[43]:
+
+
+zipcode.zip = zipcode.zip.apply(lambda x: '0' + x if len(x)==4 else x)
+
+
+# In[44]:
 
 
 #check data in borough column
 zipcode.borough.unique()
 
 
-# In[136]:
+# In[45]:
 
 
 #check data in neighborhood column
 zipcode.neighborhood.unique()
 
 
-# In[137]:
+# In[46]:
 
 
 #merge data
-df = df.merge(zipcode, left_on='Owner Zip Code', right_on='zip')
+df = df.merge(zipcode, left_on='owner_zip_code', right_on='zip')
 
 
-# In[139]:
+# In[47]:
 
 
 #check merged data
 df.head()
 
 
+# In[48]:
+
+
+#Which neighborhood does each dog live in?
+
+df.neighborhood.value_counts()
+
+
 # ## What is the most popular dog name in all parts of the Bronx? How about Brooklyn? The Upper East Side?
 # 
 # You'll want to do these separately, and filter for each.
 
-# In[140]:
+# In[49]:
 
 
 #What is the most popular dog name in all parts of the Bronx?
-df[df.borough=='Bronx']['Animal Name'].value_counts().head()
+df.query("borough=='Bronx'").animal_name.value_counts().head(1)
 
 
-# In[141]:
+# In[50]:
 
 
 #How about Brooklyn? 
-df[df.borough=='Brooklyn']['Animal Name'].value_counts().head()
+df.query("borough=='Brooklyn'").animal_name.value_counts().head(1)
 
 
-# In[142]:
+# In[51]:
 
 
 #The Upper East Side?
-df[df.neighborhood=='Upper East Side']['Animal Name'].value_counts().head()
+df.query("neighborhood=='Upper East Side'").animal_name.value_counts().head(1)
 
 
 # ## What is the most common dog breed in each of the neighborhoods of NYC?
 # 
 # * *Tip: There are a few ways to do this, and some are awful (see the "top 5 breeds in each borough" question below).*
 
-# In[166]:
+# In[52]:
 
 
-#counting numbers of dogs of each breed in each neighborhoods
-breed_count = df.groupby(['neighborhood','Primary Breed']).count().borough.unstack()
+breed_by_area = pd.crosstab(df.primary_breed, df.neighborhood).rank(method='min', ascending=False)
 
 
-# In[167]:
+# In[53]:
 
 
-#rank by number
-breed_rank = breed_count.rank(method="min",ascending=False, axis=1)
-
-
-# In[186]:
-
-
-#top5 table
-breed_top5 = breed_rank.where(breed_rank<=5)
-breed_top5 = breed_top5.dropna(how="all").dropna(how="all",axis=1)
-
-
-# In[197]:
-
-
-#show table
-breed_top5[breed_top5.mean().sort_values().index].fillna('')
-
-
-# In[223]:
-
-
-#print
-for neighborhood in breed_top5.index:
-    breeds = breed_top5.loc[neighborhood]
-    breeds = breeds.dropna().sort_values().to_dict()
-    text = ','.join(['(' + str(int(val))+')' + key for key, val in breeds.items()])
-    print(neighborhood, ':\n', text, '\n----')
+for neighborhood in breed_by_area.columns:
+    dog_breed = breed_by_area[breed_by_area[neighborhood]==1].index[0]
+    print(neighborhood, ": ", dog_breed)
 
 
 # ## What breed of dogs are the least likely to be spayed? Male or female?
 # 
 # * *Tip: This has a handful of interpretations, and some are easier than others. Feel free to skip it if you can't figure it out to your satisfaction.*
 
-# In[224]:
+# In[54]:
 
 
 #check how data looks like
-df['Spayed or Neut'].unique()
+df.spayed_or_neut.unique()
 
 
-# In[229]:
-
-
-#change <Yes/No> to <True/False> to calculate numbers in the following cells
-df['spayed_or_neut'] = df['Spayed or Neut'].replace({'Yes': True, 'No': False})
-
-
-# In[230]:
+# In[76]:
 
 
 #What breed of dogs are the least likely to be spayed?
-#breeds with low numbers
-df.groupby(['Primary Breed'])['spayed_or_neut'].mean().sort_values().head(15)
+spayed_by_breed = df.groupby('primary_breed').spayed_or_neut.value_counts(normalize=True).unstack()
 
 
-# In[234]:
+# In[77]:
 
 
-#Male or female?
-#by gender
-#Male dogs are least likely to be spayed
-df.groupby(['Animal Gender']).mean().spayed_or_neut.sort_values()
+spayed_by_breed.sort_values(by='Yes').head(5)
 
 
-# In[233]:
+# In[94]:
 
 
-#by gender AND breed
-df.groupby(['Primary Breed','Animal Gender']).mean().spayed_or_neut.sort_values().head(25)
+#Male or Female?
+spayed_by_gender = pd.crosstab(df.animal_gender, df.spayed_or_neut)
+spayed_by_gender_pct = spayed_by_gender.div(spayed_by_gender.sum(axis=1), axis=0).sort_values(by='Yes')
+
+#-->Male dogs have lower percentage of getting spayed
+spayed_by_gender_pct
 
 
 # ## Make a new column called `monochrome` that is True for any animal that only has black, white or grey as one of its colors. How many animals are monochrome?
 
-# In[236]:
+# In[201]:
 
 
-#list of columns with color names
-color_cols = [col for col in df.columns if 'Color' in col]
-print(color_cols)
+#columns with data for colors 
+color_col = df.columns[df.columns.str.contains('color')]
 
 
-# In[239]:
+# In[202]:
 
 
-#names of all the colors
-colors = set(df['Animal Dominant Color'])|set(df['Animal Secondary Color'])|set(df['Animal Third Color'])
-print(colors)
+#change color names to lower case
+df[color_col] = df[color_col].applymap(lambda x: x.lower() if type(x)==str else x)
 
 
-# In[265]:
+# In[203]:
 
 
-#names of monochrome colors
-#add na
-mono_colors = [color for color in colors if any(mono in str(color).lower() for mono in ['black','white','gray'])]
-mono_colors = mono_colors + [np.nan]
-print(mono_colors)
+#list of colors to include
+monocolors = ['black','white','gray', np.nan]
 
 
-# In[301]:
+# In[204]:
 
 
-#filter rows with only monochrome colors & na
-df['monochrome'] = (df[color_cols].isin(mono_colors).sum(axis=1)==3)
+#assign a monochrome column
+df['monochrome'] = df[color_col].isin(monocolors).sum(axis=1)==3
 
 
-# In[310]:
+# In[205]:
 
 
 #change momochrome column to False for rows without color data
-df.loc[df[color_cols].isna().sum(axis=1)==3,'monochrome'] = False
+df.loc[df[color_col].isnull().sum(axis=1)==3, 'monochrome'] = False
 
 
-# In[311]:
+# In[206]:
 
 
 #How many animals are monochrome
@@ -556,14 +545,14 @@ print(f"{df.monochrome.sum()} are monochrome.")
 
 # ## How many dogs are in each borough? Plot it in a graph.
 
-# In[313]:
+# In[207]:
 
 
 #How many dogs are in each borough?
 df.borough.value_counts()
 
 
-# In[314]:
+# In[208]:
 
 
 #graph
@@ -576,7 +565,7 @@ plt.show()
 # 
 # You’ll need to merge in `population_boro.csv`
 
-# In[323]:
+# In[209]:
 
 
 #population data
@@ -584,96 +573,63 @@ boro_population = pd.read_csv('boro_population.csv')
 boro_population = boro_population.set_index('borough')
 
 
-# In[324]:
+# In[210]:
 
 
 #add dog counts
 boro_population['dogs'] = df.borough.value_counts()
 
 
-# In[330]:
+# In[211]:
 
 
 #calculate per capita dogs
 boro_population['per_capita_dogs'] = boro_population.dogs / boro_population.population
 
 
-# In[349]:
+# In[212]:
 
 
 #sort values
 boro_population = boro_population.sort_values(by='per_capita_dogs', ascending=False)
 
 
-# In[350]:
+# In[213]:
 
 
 boro_population
 
 
-# In[353]:
+# In[216]:
 
 
-print(f"{boro_population.index[0]} is borough with the highest number of dogs per-capita.")
-
-
-# In[339]:
-
-
-#check with the whole data set
-#Manhattan is still the borough with the highest number
-df_all = pd.read_excel('NYC_Dog_Licenses_Current_as_of_4-28-2016.xlsx')
-df_all = df_all.merge(zipcode, left_on='Owner Zip Code', right_on='zip')
-(df_all.borough.value_counts() / boro_population.population).sort_values(ascending= False)
+print(f"{boro_population.index[0]} is borough with the highest number of dogs per capita.")
 
 
 # ## Make a bar graph of the top 5 breeds in each borough.
 # 
 # How do you groupby and then only take the top X number? You **really** should ask me, because it's kind of crazy.
 
-# In[357]:
+# In[245]:
 
 
-df['dogs_count'] = 1
+breed_by_borough = pd.crosstab(df.primary_breed, df.borough)
 
 
-# In[362]:
+# In[265]:
 
-
-#count number of dogs of each breed for each borough
-borough_df = df.groupby(['borough','Primary Breed']).sum()[['dogs_count']]
-
-
-# In[365]:
-
-
-#rank
-borough_df['dogs_rank'] = borough_df.groupby(level=0).dogs_count.rank(ascending=False, method="min")
-
-
-# In[366]:
-
-
-#top5 table
-borough_df[borough_df.dogs_rank<=5]
-
-
-# In[368]:
-
-
-#data
-#top5 breeds of each boroughs 
-source = borough_df[borough_df.dogs_rank<=5]
 
 fig = plt.figure(figsize=(10,5))
 fig.suptitle('The top 5 dog breeds in the boroughs of NYC', fontsize=16)
 
-xlim = source.dogs_count.max() +10
+xlim = breed_by_borough.max().max() +10
 
 i = 1
-for borough in df.borough.unique():
+for borough in breed_by_borough.columns:
+    source = breed_by_borough.nlargest(5, borough)[borough]
+
     ax = fig.add_subplot(3, 2, i)
-    ax = source.loc[borough,'dogs_count'].rename_axis('').sort_values().plot(kind="barh")
+    ax = source.rename_axis('').sort_values().plot(kind="barh")
     ax.set_xlim(0, xlim)
     ax.set_title(f"{borough}")
     i+=1
